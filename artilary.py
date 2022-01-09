@@ -29,7 +29,7 @@ class Tank():
   def calculate_distance(self, velocity, angle):
     if 1 < angle < 90:
       radian = np.deg2rad(angle)
-      distance = (int)((velocity**2 * np.cos(2 * radian)) / (2 * 10))
+      distance = (int)((velocity**2 * np.sin(2 * radian)) / (2 * 10))
     else:
       distance = 0
     return distance
@@ -66,12 +66,17 @@ class Game():
   # Keep tract of turn
   def take_turn(self):
     turn = 0
+    print(self.distance)
     while not self.game_over:
       if turn % 2 == 0:
         self.human_turn()
       else:
         self.computer_turn()
       turn += 1
+
+      self.check_lose()
+      self.check_win()
+
 
   # Human player activty
   def human_turn(self):
@@ -80,6 +85,10 @@ class Game():
       print("You hit your enemy!")
       self.computer.take_damage(1)
     else:
+      if self.distance - fire > 50:
+        print("Try less force")
+      else:
+        print("Try larger force")
       print("You miss them, better try next time!")
 
 
@@ -94,7 +103,7 @@ class Game():
 
   # Compare distance of shot and the return boolean of hit or not within an error range
   def check_hit(self, distance):
-    if self.distance - 10 <= distance <= self.distance + 10:
+    if self.distance - 50 <= distance <= self.distance + 50:
       return True
     return False
 
@@ -150,7 +159,7 @@ class Testing(unittest.TestCase):
   # case 1: test cacluation of fire tank
   def test_calc1(self):
     tank = Tank()
-    self.assertEqual(tank.calculate_distance(50, 30), 62)
+    self.assertEqual(tank.calculate_distance(50, 30), 108)
 
   # case 2: test angle < 1
   def test_calc2(self):
@@ -210,6 +219,8 @@ if __name__ == '__main__':
           score += 1
         else:
           print("Better luck next time!")
+      else:
+        break
 
       print('Score of game play')
       print('Total win rate: ', int(score / total * 100))
