@@ -56,17 +56,16 @@ Game object to keep track of game flow
 class Game():
   # Constructor for the game
   def __init__(self):
-    self.result = False
+    self.result = False # Flag for main
     self.game_over = False
     self.distance = random.randint(100, 200)
 
     self.human = Tank()
     self.computer = Tank()
 
-  # Keep tract of turn
+  # Keep tract of turn, main function
   def take_turn(self):
     turn = 0
-    print(self.distance)
     while not self.game_over:
       if turn % 2 == 0:
         self.human_turn()
@@ -194,10 +193,10 @@ class Testing(unittest.TestCase):
     dis = game.get_distance() + 10
     self.assertEqual(game.check_hit(dis), True)
 
+# Calling the unittest case
+# unittest.main()
 
-if __name__ == '__main__':
-    # Calling the unittest case
-    # unittest.main()
+def tank_main():
 
     score = 0
     total = 0
@@ -210,7 +209,6 @@ if __name__ == '__main__':
       if ans == 'y':
 
         total += 1
-
         game = Game()
         game.take_turn()
 
@@ -225,6 +223,6 @@ if __name__ == '__main__':
       print('Score of game play')
       print('Total win rate: ', int(score / total * 100))
 
-
+tank_main()
 
 
