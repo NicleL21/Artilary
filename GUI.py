@@ -15,8 +15,8 @@ pygame.display.set_caption("Artilary Game")
 
 # Load assets
 TANK_GREEN = pygame.image.load(os.path.join("assets", "pixel_tank1.jpg"))
-TANK_RED = pygame.image.load(os.path.join("assets", "pixel_tank2.jpg"))
 TANK_GREEN2 = pygame.transform.scale(TANK_GREEN, (200, 100))
+TANK_RED = pygame.image.load(os.path.join("assets", "pixel_tank2.jpg"))
 TANK_RED2 = pygame.transform.scale(TANK_RED, (200, 100))
 BG = pygame.image.load(os.path.join("assets", "background.png"))
 BG2 = pygame.transform.scale(BG, (WIDTH, HEIGHT))
@@ -58,11 +58,15 @@ class Tank():
   def get_length(self):
     return self.img.get_height()
 
+'''
+Player tank obj
+'''
 class Player(Tank):
   def __init__(self, x, y, hp=100):
     super().__init__(x, y)
     self.img = TANK_GREEN2
 
+  # Override to modify angle
   def fire(self, angle, velocity):
     if 1 < angle < 90:
       radian = np.deg2rad(angle)
@@ -71,6 +75,9 @@ class Player(Tank):
       distance = 0
     return distance
 
+'''
+Enemy tank obj
+'''
 class Enemy(Tank):
   def __init__(self, x, y, hp=100):
     super().__init__(x, y)
@@ -78,6 +85,11 @@ class Enemy(Tank):
 
 def main():
   game_font = pygame.font.SysFont("comicsans", 30)
+  BOX_LENGHT, BOX_HEIGHT = 40, 20
+  X_BOX1 = 180
+  X_BOX2 = 240
+  Y_BOX1 = 26
+  Y_BOX2 = 62
 
   run = True
   FPS = 60
@@ -85,14 +97,10 @@ def main():
 
   angle = 0
   velocity = 0
-  BOX_LENGHT, BOX_HEIGHT = 40, 20
-  X_BOX1 = 180
-  X_BOX2 = 240
-  Y_BOX1 = 26
-  Y_BOX2 = 62
 
-  player = Player(20, HEIGHT - TANK_RED2.get_height() - 40)
-  enemy = Enemy(600, HEIGHT - TANK_RED2.get_height() - 40)
+  player = Player(20, HEIGHT - 140)
+  # Update the x of enemy randow later
+  enemy = Enemy(600, HEIGHT - 140)
 
   def redraw_win():
 
