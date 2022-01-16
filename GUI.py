@@ -7,12 +7,13 @@ from pygame.constants import MOUSEBUTTONDOWN
 
 pygame.font.init()
 game_font = pygame.font.SysFont("comicsans", 30)
+noti_font = pygame.font.SysFont("comicsans", 50)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREY = (93, 93, 93)
 
-WIDTH, HEIGHT = 800, 400
+WIDTH, HEIGHT = 1400, 700
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Artilary Game")
 
@@ -39,17 +40,30 @@ class Cannonball():
   def draw(self, window):
     window.blit(self.img, (self.x, self.y))
 
-  # Motion of the ball
-  def move(self, angle, velocity):
-    self.x += 1
-    self.y = 210 + self.x * np.tan(angle) - 9.8 * self.x**2 / 2 * velocity**2  * np.cos(angle)**2
-    print(self.y)
+  # Motion of the ball for human
+  def move(self, angle, velocity, tank_x, tank_y):
+    self.x += 5
+    shift_origin_x = self.x - tank_x
+    traject = (int)(- (shift_origin_x * np.tan(angle) - (9.8 * shift_origin_x**2) / (2 * velocity**2  * np.cos(angle)**2)))
+    self.y = tank_y + traject
+
+  # Motion of the ball for computer
+  def cmove(self, angle, velocity, tank_x, tank_y):
+    self.x -= 5
+    shift_origin_x = - (self.x - tank_x)
+    traject = (int)(- (shift_origin_x * np.tan(angle) - (9.8 * shift_origin_x**2) / (2 * velocity**2  * np.cos(angle)**2)))
+    self.y = tank_y + traject
 
   # Check the ball if it is off screen
-  def off_screen(self, height):
-    return not(self.y <= height and self.y >= 0)
+  def off_screen(self):
+    return not(0 <= self.y <= HEIGHT)
 
-
+  # to check if the laser collide with obj # Check the overlap of the pixels
+  def collision(self, obj):
+    offset_x = obj.x - self.x #(x,y) of top left corner
+    offset_y = obj.y - self.y
+    # overlap the pixels when use mask
+    return self.mask.overlap(obj.mask, (offset_x, offset_y)) != None
 
 """
 Tank class to define an object for game playing
@@ -57,34 +71,21 @@ Tank class to define an object for game playing
 class Tank():
 
   # Initialize the game with hp and set defaults
-  def __init__(self, x, y, hp=100):
+  def __init__(self, x, y, hp=10):
     self.x = x
     self.y = y
     self.hp = hp
     self.img = None
     self.angle = 0
     self.velocity = 0
-    self.cannon = None
-
-   # Create a cannon ball and call it to move
-  def fire(self):
-    if self.cannon == None:
-      self.cannon = Cannonball(self.x + self.get_width(), self.y)
-    if 0 <= self.angle <= 90:
-      radian = np.deg2rad(self.angle)
-      #self.cannon.move(radian, self.velocity)
-
-  # the end turn flag
-  def end_turn(self):
-    if self.cannon != None and self.cannon.y > HEIGHT - 130:
-      return True
-    return False
+    self.cannon = []
 
   # Draw tank
   def draw(self, window):
     window.blit(self.img, (self.x, self.y))
-    if self.cannon != None:
-      self.cannon.draw(window)
+    for cannon in self.cannon:
+      if not (cannon.off_screen()):
+        cannon.draw(window)
 
   # return the tank hp
   def get_hp(self):
@@ -100,9 +101,26 @@ class Tank():
 Player tank obj
 '''
 class Player(Tank):
-  def __init__(self, x, y, hp=100):
+  def __init__(self, x, y, hp=10):
     super().__init__(x, y)
     self.img = TANK_GREEN2
+    self.mask = pygame.mask.from_surface(self.img)
+
+  # Create a cannon ball
+  def fire(self):
+    if 0 < self.angle < 90 and 0 < self.velocity:
+      self.cannon.append(Cannonball(self.x + self.get_width(), self.y))
+
+  # Move the cannon
+  def move_cannon(self, obj):
+    radian = np.deg2rad(self.angle)
+    for cannon in self.cannon:
+      cannon.move(radian, self.velocity, self.x + self.get_width(), self.y)
+      if cannon.off_screen():
+        self.cannon.remove(cannon)
+      elif cannon.collision(obj):
+        obj.hp -= 10
+
 
   def increase_angel(self):
     if self.angle < 90:
@@ -117,7 +135,7 @@ class Player(Tank):
       self.velocity += 1
 
   def decrease_velocity(self):
-    if self.velocity > 100:
+    if self.velocity > 1:
       self.velocity -= 1
 
   def get_angle(self):
@@ -130,28 +148,58 @@ class Player(Tank):
 Enemy tank obj
 '''
 class Enemy(Tank):
-  def __init__(self, x, y, hp=100):
+  def __init__(self, x, y, hp=10):
     super().__init__(x, y)
     self.img = TANK_RED2
+    self.mask = pygame.mask.from_surface(self.img)
 
-# Check the overlap of the pixels
-def collision(obj1, obj2):
-  offset_x = obj2.x - obj1.x #(x,y) of top left corner
-  offset_y = obj2.y - obj1.y
-  # overlap the pixels when use mask
-  return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+  # Create a cannon ball
+  def fire(self):
+    self.angle = random.randint(0, 89)
+    self.velocity = random.randint(0, 200)
+    if 0 < self.angle < 90 and 0 < self.velocity:
+      self.cannon.append(Cannonball(self.x + self.get_width(), self.y))
+
+  # Move the cannon
+  def move_cannon(self, obj):
+    radian = np.deg2rad(self.angle)
+    for cannon in self.cannon:
+      cannon.cmove(radian, self.velocity, self.x, self.y)
+      if cannon.off_screen():
+        self.cannon.remove(cannon)
+      elif cannon.collision(obj):
+        obj.hp -= 10
+
+def human_turn(player):
+  keys = pygame.key.get_pressed()
+
+  if keys[pygame.K_UP]:
+    player.increase_angel()
+  if keys[pygame.K_DOWN]:
+    player.decrease_angle()
+  if keys[pygame.K_LEFT]:
+    player.decrease_velocity()
+  if keys[pygame.K_RIGHT]:
+    player.increase_velocity()
+
+  # Call the tank to fire
+  if keys[pygame.K_SPACE]:
+    player.fire()
+
 
 def main():
-
   run = True
+  win = False
+  win_count = 0
+  lost = False
+  lose_count =0
   FPS = 60
   clock = pygame.time.Clock()
 
   turn = 0
-  distance = random.randint(100, 200)
+  distance = random.randint(200, 700)
 
   player = Player(20, HEIGHT - 140)
-  # Update the x of enemy randow later
   enemy = Enemy(20 + player.get_width() + distance, HEIGHT - 140)
 
   def redraw_win():
@@ -167,21 +215,49 @@ def main():
     player.draw(SCREEN)
     enemy.draw(SCREEN)
 
+    if lost:
+      lost_label = noti_font.render("You lost!", 1, WHITE)
+      SCREEN.blit(lost_label, (WIDTH / 2 - lost_label.get_width() / 2, HEIGHT / 2))
+
+    if win:
+      win_label = noti_font.render("Congrats!", 1, WHITE)
+      SCREEN.blit(win_label, (WIDTH / 2 - win_label.get_width() / 2, HEIGHT / 2))
+
     pygame.display.update()
 
-  def computer_turn():
-    pass
-
-  def check_win():
-    pass
-
-  def check_lose():
-    pass
+  # the end turn flag
+  def end_turn(obj):
+    for cannon in obj.cannon:
+      if cannon.y > HEIGHT - 130:
+        return True
+    return False
 
   # Game main
   while run:
     clock.tick(FPS)
     redraw_win()
+
+    # Win check
+    if enemy.hp == 0:
+      win = True
+      win_count += 1
+
+    if win:
+      if win_count > FPS * 3:
+        run = False
+      else:
+        continue
+
+    # Lose check
+    if player.hp == 0:
+      lost = False
+      lose_count += 1
+
+    if lost:
+      if lose_count > FPS * 3:
+        run = False
+      else:
+        continue
 
     # Checking event
     for event in pygame.event.get():
@@ -190,27 +266,20 @@ def main():
 
     if turn % 2 == 0:
       # Human turn
-      keys = pygame.key.get_pressed()
-      if keys[pygame.K_UP]:
-        player.increase_angel()
-      if keys[pygame.K_DOWN]:
-        player.decrease_angle()
-      if keys[pygame.K_LEFT]:
-        player.decrease_velocity()
-      if keys[pygame.K_RIGHT]:
-        player.increase_velocity()
+      human_turn(player)
 
-      if keys[pygame.K_SPACE]:
-        player.fire()
-
-      if player.end_turn():
+      if end_turn(player):
+        turn += 1
+    else:
+      # Enemy turn
+      enemy.fire()
+      if end_turn(enemy):
         turn += 1
 
-    else:
-      computer_turn()
+    player.move_cannon(enemy)
+    enemy.move_cannon(player)
 
-    check_win()
-    check_lose()
+
 
   pygame.quit()
 
