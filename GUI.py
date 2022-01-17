@@ -27,6 +27,10 @@ BG2 = pygame.transform.scale(BG, (WIDTH, HEIGHT))
 CANNON = pygame.image.load(os.path.join("assets", "cannon.png"))
 CANNON2 = pygame.transform.scale(CANNON, (50, 50))
 
+def delta_y(velocity, angle, shift_origin_x):
+  delta_y = (int)(- (shift_origin_x * np.tan(angle) - (9.8 * shift_origin_x**2) / (2 * velocity**2  * np.cos(angle)**2)))
+  return delta_y
+
 """
 The cannon ball object that the tank fire
 """
@@ -40,23 +44,33 @@ class Cannonball():
   def draw(self, window):
     window.blit(self.img, (self.x, self.y))
 
+
   # Motion of the ball for human
   def move(self, angle, velocity, tank_x, tank_y):
-    self.x += 5
+    new_x = self.x + 5
+
     shift_origin_x = self.x - tank_x
-    traject = (int)(- (shift_origin_x * np.tan(angle) - (9.8 * shift_origin_x**2) / (2 * velocity**2  * np.cos(angle)**2)))
-    self.y = tank_y + traject
+    traject = delta_y(velocity, angle, shift_origin_x)
+    new_y = tank_y + traject
+
+    self.x = new_x
+    self.y = new_y
 
   # Motion of the ball for computer
   def cmove(self, angle, velocity, tank_x, tank_y):
-    self.x -= 5
-    shift_origin_x = - (self.x - tank_x)
-    traject = (int)(- (shift_origin_x * np.tan(angle) - (9.8 * shift_origin_x**2) / (2 * velocity**2  * np.cos(angle)**2)))
-    self.y = tank_y + traject
+    new_x = self.x - 5
+
+    shift_origin_x = self.x - tank_x
+    traject = delta_y(velocity, angle, - shift_origin_x)
+    new_y = tank_y + traject
+
+    self.x = new_x
+    self.y = new_y
+    print(new_x, new_y)
 
   # Check the ball if it is off screen
   def off_screen(self):
-    return not(0 <= self.y <= HEIGHT)
+    return not(0 <= self.y <= HEIGHT and 0 <= self.x <= WIDTH)
 
   # to check if the laser collide with obj # Check the overlap of the pixels
   def collision(self, obj):
@@ -137,6 +151,14 @@ class Player(Tank):
   def decrease_velocity(self):
     if self.velocity > 1:
       self.velocity -= 1
+
+  def move_left(self):
+    if self.x > 0:
+      self.x -= 1
+
+  def move_right(self):
+    if self.x < WIDTH - self.get_width():
+      self.x += 1
 
   def get_angle(self):
     return self.angle
