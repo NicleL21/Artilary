@@ -1,4 +1,3 @@
-from termios import VEOL
 import pygame
 import random
 import os
@@ -48,25 +47,20 @@ class Cannonball():
   # Motion of the ball for human
   def move(self, angle, velocity, tank_x, tank_y):
     new_x = self.x + 5
-
     shift_origin_x = self.x - tank_x
     traject = delta_y(velocity, angle, shift_origin_x)
     new_y = tank_y + traject
-
     self.x = new_x
     self.y = new_y
 
   # Motion of the ball for computer
   def cmove(self, angle, velocity, tank_x, tank_y):
     new_x = self.x - 5
-
-    shift_origin_x = self.x - tank_x
-    traject = delta_y(velocity, angle, - shift_origin_x)
+    shift_origin_x = ( - self.x + tank_x)
+    traject = delta_y(velocity, angle, shift_origin_x)
     new_y = tank_y + traject
-
     self.x = new_x
     self.y = new_y
-    print(new_x, new_y)
 
   # Check the ball if it is off screen
   def off_screen(self):
@@ -77,7 +71,7 @@ class Cannonball():
     offset_x = obj.x - self.x #(x,y) of top left corner
     offset_y = obj.y - self.y
     # overlap the pixels when use mask
-    return self.mask.overlap(obj.mask, (offset_x, offset_y)) != None
+    return obj.mask.overlap(self.mask, (offset_x, offset_y)) != None
 
 """
 Tank class to define an object for game playing
@@ -90,6 +84,7 @@ class Tank():
     self.y = y
     self.hp = hp
     self.img = None
+    self.mask = None
     self.angle = 0
     self.velocity = 0
     self.cannon = []
@@ -180,7 +175,7 @@ class Enemy(Tank):
     self.angle = random.randint(0, 89)
     self.velocity = random.randint(0, 200)
     if 0 < self.angle < 90 and 0 < self.velocity:
-      self.cannon.append(Cannonball(self.x + self.get_width(), self.y))
+      self.cannon.append(Cannonball(self.x, self.y))
 
   # Move the cannon
   def move_cannon(self, obj):
@@ -194,7 +189,6 @@ class Enemy(Tank):
 
 def human_turn(player):
   keys = pygame.key.get_pressed()
-
   if keys[pygame.K_UP]:
     player.increase_angel()
   if keys[pygame.K_DOWN]:
@@ -203,11 +197,15 @@ def human_turn(player):
     player.decrease_velocity()
   if keys[pygame.K_RIGHT]:
     player.increase_velocity()
-
-  # Call the tank to fire
-  if keys[pygame.K_SPACE]:
+  if keys[pygame.K_SPACE]: # Call the tank to fire
     player.fire()
 
+# the end turn flag
+def end_turn(obj):
+  for cannon in obj.cannon:
+    if cannon.y > HEIGHT - 130 or cannon.y < 20 or cannon.x < 20 or cannon.x > WIDTH - 100:
+      return True
+  return False
 
 def main():
   run = True
@@ -219,6 +217,7 @@ def main():
   clock = pygame.time.Clock()
 
   turn = 0
+  enemy_fire = False
   distance = random.randint(200, 700)
 
   player = Player(20, HEIGHT - 140)
@@ -246,13 +245,6 @@ def main():
       SCREEN.blit(win_label, (WIDTH / 2 - win_label.get_width() / 2, HEIGHT / 2))
 
     pygame.display.update()
-
-  # the end turn flag
-  def end_turn(obj):
-    for cannon in obj.cannon:
-      if cannon.y > HEIGHT - 130:
-        return True
-    return False
 
   # Game main
   while run:
@@ -292,9 +284,12 @@ def main():
 
       if end_turn(player):
         turn += 1
+        enemy_fire = True
     else:
       # Enemy turn
-      enemy.fire()
+      if enemy_fire:
+        enemy.fire()
+        enemy_fire = False
       if end_turn(enemy):
         turn += 1
 
