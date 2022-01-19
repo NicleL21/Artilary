@@ -56,7 +56,7 @@ class Cannonball():
   # Motion of the ball for computer
   def cmove(self, angle, velocity, tank_x, tank_y):
     new_x = self.x - 5
-    shift_origin_x = ( - self.x + tank_x)
+    shift_origin_x = - self.x + tank_x
     traject = delta_y(velocity, angle, shift_origin_x)
     new_y = tank_y + traject
     self.x = new_x
@@ -71,7 +71,7 @@ class Cannonball():
     offset_x = obj.x - self.x #(x,y) of top left corner
     offset_y = obj.y - self.y
     # overlap the pixels when use mask
-    return obj.mask.overlap(self.mask, (offset_x, offset_y)) != None
+    return self.mask.overlap(obj.mask, (offset_x, offset_y)) != None
 
 """
 Tank class to define an object for game playing
@@ -172,10 +172,11 @@ class Enemy(Tank):
 
   # Create a cannon ball
   def fire(self):
-    self.angle = random.randint(0, 89)
-    self.velocity = random.randint(0, 200)
-    if 0 < self.angle < 90 and 0 < self.velocity:
-      self.cannon.append(Cannonball(self.x, self.y))
+    if self.cannon == []:
+      self.angle = random.randint(0, 89)
+      self.velocity = random.randint(0, 200)
+      if 0 < self.angle < 90 and 0 < self.velocity:
+        self.cannon.append(Cannonball(self.x, self.y))
 
   # Move the cannon
   def move_cannon(self, obj):
